@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TJ Spesa</title>
+<meta name="theme-color" content="#fbfcff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14213f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TJ Spesa">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CONFIGURAZIONE — incolla qui i dati del tuo progetto Firebase
+   (si trovano in: Impostazioni progetto > Le tue app > Config)
+   Finché apiKey è vuota, l'app gira in "modalità prova" locale.
+   ============================================================ */
+</style>
+<script>
+window.CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyD0HC62viuOFDu4RebH8ik2DZN4h5dt3u8",
+    authDomain: "tj-spesa.firebaseapp.com",
+    projectId: "tj-spesa",
+    storageBucket: "tj-spesa.firebasestorage.app",
+    messagingSenderId: "330097757438",
+    appId: "1:330097757438:web:243863a6801c10e41a69af"
+  },
+  // Nome della lista condivisa: tutti quelli che usano lo stesso link vedono la stessa lista.
+  // Puoi creare liste diverse aggiungendo #nome alla fine del link (es. .../#casa-mare)
+  listaPredefinita: "famiglia"
+};
+</script>
+<style>
+:root{
+  --carta:#fbfcff;
+  --quadretto:#dfe7f5;
+  --margine:#e4473b;
+  --inchiostro:#1d3787;
+  --testo:#1a2440;
+  --tenue:#6b7896;
+  --basilico:#2f7d52;
+  --superficie:#ffffff;
+  --bordo:#cdd8ec;
+  --ombra:0 1px 0 #cdd8ec, 0 8px 24px -12px rgba(29,55,135,.35);
+  --q:26px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --carta:#14213f;
+    --quadretto:#1f2f55;
+    --margine:#ff6b5e;
+    --inchiostro:#9db6ff;
+    --testo:#e8edfb;
+    --tenue:#95a3c6;
+    --basilico:#6fd39b;
+    --superficie:#1a2a4e;
+    --bordo:#2c3e6a;
+    --ombra:0 1px 0 #2c3e6a, 0 10px 28px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --carta:#14213f;--quadretto:#1f2f55;--margine:#ff6b5e;--inchiostro:#9db6ff;--testo:#e8edfb;
+  --tenue:#95a3c6;--basilico:#6fd39b;--superficie:#1a2a4e;--bordo:#2c3e6a;
+  --ombra:0 1px 0 #2c3e6a, 0 10px 28px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Figtree",system-ui,sans-serif;
+  color:var(--testo);
+  background-color:var(--carta);
+  background-image:
+    linear-gradient(var(--quadretto) 1px, transparent 1px),
+    linear-gradient(90deg, var(--quadretto) 1px, transparent 1px);
+  background-size:var(--q) var(--q);
+  background-position:-1px -1px;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;
+}
+/* la riga rossa del margine del quaderno */
+body::before{
+  content:"";position:fixed;top:0;bottom:0;left:calc(var(--q) * 2 - 1px);
+  width:2px;background:var(--margine);opacity:.55;pointer-events:none;z-index:0;
+}
+.foglio{
+  position:relative;z-index:1;
+  max-width:560px;margin:0 auto;
+  padding:calc(env(safe-area-inset-top) + 18px) 16px calc(120px + env(safe-area-inset-bottom)) calc(var(--q) * 2 + 14px);
+}
+
+/* ---------- testata ---------- */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:6px}
+h1{
+  font-family:"Caveat",cursive;font-weight:700;
+  font-size:clamp(52px,15vw,68px);line-height:.9;
+  color:var(--inchiostro);letter-spacing:-.5px;
+  transform:rotate(-2deg);transform-origin:left bottom;
+}
+.stato{
+  display:flex;align-items:center;gap:6px;font-size:13px;color:var(--tenue);
+  padding-bottom:8px;white-space:nowrap;
+}
+.stato i{width:8px;height:8px;border-radius:50%;background:var(--tenue);display:inline-block}
+.stato.ok i{background:var(--basilico);box-shadow:0 0 0 3px color-mix(in srgb,var(--basilico) 25%,transparent)}
+.stato.off i{background:var(--margine)}
+.riepilogo{font-size:15px;color:var(--tenue);margin:4px 0 22px;min-height:20px}
+.riepilogo b{color:var(--testo);font-weight:600}
+
+.avviso{
+  font-size:14px;line-height:1.45;background:var(--superficie);border:1px dashed var(--bordo);
+  border-radius:10px;padding:10px 12px;margin-bottom:18px;color:var(--tenue)
+}
+.avviso[hidden]{display:none}
+
+/* ---------- reparti ---------- */
+.reparto{margin-bottom:22px}
+.reparto h2{
+  font-family:"Caveat",cursive;font-weight:700;font-size:28px;line-height:var(--q);
+  color:var(--inchiostro);margin-bottom:4px;display:flex;align-items:center;gap:8px;
+}
+.reparto h2 .em{font-size:20px;line-height:1}
+ul{list-style:none}
+
+.voce{
+  display:flex;align-items:center;gap:12px;
+  min-height:52px;padding:6px 6px 6px 10px;margin-bottom:6px;
+  background:var(--superficie);border-radius:12px;box-shadow:var(--ombra);
+  animation:entra .28s ease-out;
+}
+@keyframes entra{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.spunta{
+  flex:none;width:28px;height:28px;border-radius:50%;
+  border:2px solid var(--inchiostro);background:transparent;cursor:pointer;
+  display:grid;place-items:center;transition:background .15s, border-color .15s;
+}
+.spunta svg{width:16px;height:16px;stroke:#fff;stroke-width:3;fill:none;opacity:0;transition:opacity .15s}
+.corpo{flex:1;min-width:0;cursor:pointer;padding:4px 0}
+.nome{
+  position:relative;display:inline;font-size:18px;font-weight:500;line-height:1.3;
+  word-break:break-word;
+}
+.nome::after{
+  content:"";position:absolute;left:-3px;right:-3px;top:55%;height:2.5px;
+  background:var(--inchiostro);border-radius:2px;
+  transform:scaleX(0) rotate(-1.5deg);transform-origin:left center;
+  transition:transform .32s cubic-bezier(.6,.05,.3,1);
+}
+.chi{display:block;font-size:12.5px;color:var(--tenue);margin-top:2px}
+.togli{
+  flex:none;width:40px;height:40px;border:0;background:transparent;border-radius:10px;
+  color:var(--tenue);font-size:22px;line-height:1;cursor:pointer;
+}
+.togli:active{background:color-mix(in srgb,var(--margine) 12%,transparent);color:var(--margine)}
+
+/* fatto */
+.voce.fatto{background:transparent;box-shadow:none;border:1px dashed var(--bordo)}
+.voce.fatto .spunta{background:var(--basilico);border-color:var(--basilico)}
+.voce.fatto .spunta svg{opacity:1}
+.voce.fatto .nome{color:var(--tenue)}
+.voce.fatto .nome::after{transform:scaleX(1) rotate(-1.5deg);background:var(--tenue)}
+
+.carrello-testa{display:flex;align-items:center;justify-content:space-between;margin-top:30px}
+.carrello-testa h2{margin:0}
+.svuota{
+  border:0;background:transparent;color:var(--margine);font:600 15px "Figtree",sans-serif;
+  padding:10px 8px;cursor:pointer;border-radius:8px;white-space:nowrap;flex:none;
+}
+.carrello-testa h2{flex:1;min-width:0}
+.vuoto{text-align:center;padding:40px 10px 20px;color:var(--tenue)}
+.vuoto p:first-child{font-family:"Caveat",cursive;font-size:34px;color:var(--inchiostro);margin-bottom:6px}
+
+/* ---------- barra aggiungi ---------- */
+.barra{
+  position:fixed;left:0;right:0;bottom:0;z-index:5;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top, var(--carta) 70%, transparent);
+}
+.barra form{
+  max-width:560px;margin:0 auto;display:flex;gap:8px;
+  background:var(--superficie);border:2px solid var(--inchiostro);border-radius:16px;
+  padding:5px 5px 5px 14px;box-shadow:0 10px 30px -14px rgba(29,55,135,.6);
+}
+.barra input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font:500 18px "Figtree",sans-serif;color:var(--testo);
+}
+.barra input::placeholder{color:var(--tenue);font-weight:400}
+.aggiungi{
+  flex:none;width:48px;height:48px;border:0;border-radius:12px;
+  background:var(--inchiostro);color:var(--carta);font-size:30px;line-height:1;cursor:pointer;
+}
+.aggiungi:active{transform:scale(.94)}
+.suggerimento{max-width:560px;margin:6px auto 0;font-size:13px;color:var(--tenue);min-height:18px;padding-left:4px}
+
+/* ---------- foglio nome ---------- */
+.velo{position:fixed;inset:0;z-index:20;background:rgba(20,33,63,.45);display:grid;place-items:end center}
+.velo[hidden]{display:none}
+.scheda{
+  width:100%;max-width:560px;background:var(--carta);border-radius:22px 22px 0 0;
+  padding:26px 20px calc(24px + env(safe-area-inset-bottom));
+  animation:sale .3s ease-out;
+}
+@keyframes sale{from{transform:translateY(100%)}to{transform:none}}
+.scheda h3{font-family:"Caveat",cursive;font-size:38px;color:var(--inchiostro);line-height:1}
+.scheda p{color:var(--tenue);margin:8px 0 16px;line-height:1.45}
+.scheda input{
+  width:100%;font:500 18px "Figtree",sans-serif;padding:14px;border-radius:12px;
+  border:2px solid var(--bordo);background:var(--superficie);color:var(--testo);outline:none;
+}
+.scheda input:focus{border-color:var(--inchiostro)}
+.scheda button{
+  margin-top:12px;width:100%;padding:15px;border:0;border-radius:12px;
+  background:var(--inchiostro);color:var(--carta);font:600 17px "Figtree",sans-serif;cursor:pointer;
+}
+.chi-sono{
+  border:0;background:transparent;color:var(--tenue);font:500 13px "Figtree",sans-serif;
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0;
+}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom));z-index:30;
+  transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--testo);color:var(--carta);padding:10px 16px;border-radius:999px;font-size:14px;
+  transition:opacity .2s, transform .2s;white-space:nowrap;
+}
+.toast.su{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{border:0;background:transparent;color:var(--basilico);font:700 14px "Figtree";margin-left:10px;cursor:pointer}
+
+:focus-visible{outline:3px solid var(--margine);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+@media (max-width:360px){ :root{--q:22px} }
+</style>
+</head>
+<body>
+<main class="foglio">
+  <header>
+    <h1>TJ Spesa</h1>
+    <div class="stato" id="stato" role="status"><i></i><span>Connessione…</span></div>
+  </header>
+  <p class="riepilogo" id="riepilogo"></p>
+  <p class="avviso" id="avvisoDemo" hidden>
+    Modalità prova: la lista resta solo su questo telefono. Per condividerla con la famiglia inserisci i dati di Firebase nel file.
+  </p>
+  <div id="lista"></div>
+  <p style="margin-top:28px"><button class="chi-sono" id="cambiaNome"></button></p>
+</main>
+
+<div class="barra">
+  <form id="form" autocomplete="off">
+    <input id="campo" type="text" enterkeyhint="done" placeholder="Cosa serve? (es. 2 kg patate)" aria-label="Aggiungi alla lista" maxlength="80">
+    <button class="aggiungi" type="submit" aria-label="Aggiungi">+</button>
+  </form>
+  <p class="suggerimento" id="sugg"></p>
+</div>
+
+<div class="velo" id="veloNome" hidden>
+  <form class="scheda" id="formNome">
+    <h3>Ciao! Chi sei?</h3>
+    <p>Il tuo nome compare accanto alle cose che aggiungi, così gli altri sanno chi le ha chieste.</p>
+    <input id="campoNome" type="text" placeholder="Il tuo nome" maxlength="20" required>
+    <button type="submit">Inizia la lista</button>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status"><span id="toastTesto"></span><button id="toastAnnulla" type="button">Annulla</button></div>
+
+<script type="module">
+/* ---------------- reparti e riconoscimento automatico ---------------- */
+const REPARTI = [
+  {id:"frutta",  nome:"Frutta e verdura", em:"🥬", parole:"mela mele pera pere banan arancia arance limon mandarin kiwi uva frag pesca pesche albicocc ciliegi melone anguria ananas avocado pomodor insalat lattuga rucola carot zucchin melanzan peperon patat cipoll aglio sedano finocch spinac cavol broccol funghi fagiolin basilico prezzemolo verdur frutta zucca porri radicchio"},
+  {id:"carne",   nome:"Carne e pesce",    em:"🥩", parole:"carne pollo petto tacchino manzo maiale vitello macinato salsiccia salsicce hamburger bistecc fettin cotolett arrosto agnello coniglio pesce salmone merluzzo orata branzino gamber cozze vongole calamar polp"},
+  {id:"latte",   nome:"Latte, uova e formaggi", em:"🧀", parole:"latte yogurt burro panna uova uovo formagg mozzarell parmigian grana pecorino ricotta stracchino mascarpone scamorza provola gorgonzola sottilett prosciutto cotto crudo salame mortadella bresaola speck affettat wurstel"},
+  {id:"pane",    nome:"Pane e colazione", em:"🥐", parole:"pane panino panini piadin focacc grissin crackers cracker fette biscottate biscott cornett brioche merendin cereali muesli marmellat nutella miele caffè caffe tè the tisan cacao"},
+  {id:"dispensa",nome:"Dispensa",         em:"🍝", parole:"pasta spaghetti penne fusilli riso farina zucchero sale olio aceto passata pelati sugo pesto tonno scatola legumi ceci fagioli lenticchie mais piselli lievito pangrattato spezie pepe origano dado brodo maionese ketchup senape cioccolat patatine snack"},
+  {id:"bevande", nome:"Bevande",          em:"🥤", parole:"acqua vino birra succo succhi coca cola aranciata bibit spumante prosecco gassata naturale tonica"},
+  {id:"surgelati",nome:"Surgelati",       em:"🧊", parole:"surgelat gelato gelati bastoncini pizza surgelata minestrone ghiaccio"},
+  {id:"casa",    nome:"Casa e igiene",    em:"🧴", parole:"detersiv sapone shampoo balsamo bagnoschiuma dentifricio spazzolino carta igienica scottex tovaglioli fazzoletti spugn sacchetti pattumiera alluminio pellicola candeggina sgrassatore ammorbidente pastiglie lavastoviglie deodorante assorbenti pannolini cotton"},
+  {id:"animali", nome:"Animali",          em:"🐾", parole:"crocchette cane gatto cani gatti lettiera bocconcini snack cane"},
+  {id:"altro",   nome:"Altro",            em:"🛒", parole:""}
+];
+function indovinaReparto(testo){
+  const t = " " + testo.toLowerCase() + " ";
+  for (const r of REPARTI){
+    if (!r.parole) continue;
+    for (const p of r.parole.split(" ")) if (p && t.includes(p)) return r.id;
+  }
+  return "altro";
+}
+
+/* ---------------- stato locale ---------------- */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k){ try{ return localStorage.getItem(k) }catch{ return null } },
+  set(k,v){ try{ localStorage.setItem(k,v) }catch{} }
+};
+let mioNome = store.get("spesa.nome") || "";
+const idLista = (decodeURIComponent(location.hash.slice(1)) || CONFIG.listaPredefinita || "famiglia")
+  .toLowerCase().replace(/[^a-z0-9\-_]/g,"-").slice(0,40) || "famiglia";
+let voci = [];
+
+/* ---------------- backend: Firebase o prova locale ---------------- */
+let api;
+const usaFirebase = !!(CONFIG.firebase && CONFIG.firebase.apiKey);
+
+function stato(tipo, testo){
+  const s = $("stato"); s.className = "stato " + tipo; s.querySelector("span").textContent = testo;
+}
+
+async function avviaFirebase(){
+  const V = "10.12.2";
+  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+  const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+  const au = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+  const app = initializeApp(CONFIG.firebase);
+  const db = fs.initializeFirestore(app, { localCache: fs.persistentLocalCache() });
+  await au.signInAnonymously(au.getAuth(app));
+  const col = fs.collection(db, "liste", idLista, "articoli");
+
+  fs.onSnapshot(col, snap => {
+    voci = snap.docs.map(d => ({ id:d.id, ...d.data(), creato: d.data().creato?.toMillis?.() ?? Date.now() }));
+    stato(snap.metadata.fromCache ? "off" : "ok", snap.metadata.fromCache ? "Offline" : "Sincronizzata");
+    disegna();
+  }, err => { stato("off", "Errore di connessione"); console.error(err); });
+
+  return {
+    aggiungi: v => fs.addDoc(col, { ...v, creato: fs.serverTimestamp() }),
+    aggiorna: (id, campi) => fs.updateDoc(fs.doc(col, id), campi),
+    togli: id => fs.deleteDoc(fs.doc(col, id)),
+    ripristina: v => { const {id, ...resto} = v; return fs.setDoc(fs.doc(col, id), { ...resto, creato: fs.Timestamp.fromMillis(v.creato) }); }
+  };
+}
+
+function avviaProva(){
+  $("avvisoDemo").hidden = false;
+  stato("", "Solo su questo telefono");
+  const chiave = "spesa.prova." + idLista;
+  let canale = null; try { canale = new BroadcastChannel(chiave) } catch {}
+  const leggi = () => { try { return JSON.parse(store.get(chiave) || "[]") } catch { return [] } };
+  const salva = arr => { store.set(chiave, JSON.stringify(arr)); voci = arr; disegna(); canale?.postMessage(1); };
+  voci = leggi(); disegna();
+  if (canale) canale.onmessage = () => { voci = leggi(); disegna(); };
+  return {
+    aggiungi: async v => salva([...leggi(), { ...v, id: crypto.randomUUID?.() || String(Date.now()+Math.random()), creato: Date.now() }]),
+    aggiorna: async (id, c) => salva(leggi().map(x => x.id === id ? { ...x, ...c } : x)),
+    togli: async id => salva(leggi().filter(x => x.id !== id)),
+    ripristina: async v => salva([...leggi(), v])
+  };
+}
+
+/* ---------------- disegno ---------------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const SPUNTA = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function rigaVoce(v){
+  const info = v.fatto
+    ? (v.fattoDa ? `preso da ${esc(v.fattoDa)}` : "preso")
+    : (v.da ? `aggiunto da ${esc(v.da)}` : "");
+  return `<li class="voce${v.fatto ? " fatto" : ""}" data-id="${esc(v.id)}">
+    <button class="spunta" data-azione="spunta" aria-label="${v.fatto ? "Rimetti in lista" : "Segna come preso"}: ${esc(v.nome)}">${SPUNTA}</button>
+    <div class="corpo" data-azione="spunta"><span class="nome">${esc(v.nome)}</span>${info ? `<span class="chi">${info}</span>` : ""}</div>
+    <button class="togli" data-azione="togli" aria-label="Elimina ${esc(v.nome)}">×</button>
+  </li>`;
+}
+
+function disegna(){
+  const daPrendere = voci.filter(v => !v.fatto).sort((a,b) => a.creato - b.creato);
+  const presi = voci.filter(v => v.fatto).sort((a,b) => (b.fattoIl||0) - (a.fattoIl||0));
+  let html = "";
+
+  if (!voci.length){
+    html = `<div class="vuoto"><p>Lista vuota</p><p>Scrivi qui sotto la prima cosa che serve.</p></div>`;
+  }
+  for (const r of REPARTI){
+    const gruppo = daPrendere.filter(v => (v.reparto || "altro") === r.id);
+    if (!gruppo.length) continue;
+    html += `<section class="reparto"><h2><span class="em" aria-hidden="true">${r.em}</span>${r.nome}</h2><ul>${gruppo.map(rigaVoce).join("")}</ul></section>`;
+  }
+  if (presi.length){
+    html += `<section class="reparto"><div class="carrello-testa"><h2><span class="em" aria-hidden="true">🛒</span>Nel carrello (${presi.length})</h2>
+      <button class="svuota" data-azione="svuota">Svuota carrello</button></div><ul>${presi.map(rigaVoce).join("")}</ul></section>`;
+  }
+  $("lista").innerHTML = html;
+
+  const n = daPrendere.length;
+  $("riepilogo").innerHTML = !voci.length ? "" :
+    n === 0 ? "<b>Tutto preso!</b> Puoi svuotare il carrello." :
+    `<b>${n}</b> ${n === 1 ? "cosa da prendere" : "cose da prendere"}${presi.length ? `, ${presi.length} nel carrello` : ""}`;
+}
+
+/* ---------------- interazioni ---------------- */
+$("campo").addEventListener("input", e => {
+  const t = e.target.value.trim();
+  const r = REPARTI.find(x => x.id === indovinaReparto(t));
+  $("sugg").textContent = t ? `Andrà in: ${r.em} ${r.nome}` : "";
+});
+
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const campo = $("campo");
+  const nome = campo.value.trim().replace(/\s+/g, " ");
+  if (!nome || !api) return;
+  const nomeBello = nome.charAt(0).toUpperCase() + nome.slice(1);
+  campo.value = ""; $("sugg").textContent = "";
+  campo.focus();
+  try {
+    await api.aggiungi({ nome: nomeBello, reparto: indovinaReparto(nome), da: mioNome, fatto: false });
+  } catch (err) { avvisa("Non sono riuscito ad aggiungere. Controlla la connessione."); console.error(err); }
+});
+
+$("lista").addEventListener("click", async e => {
+  const el = e.target.closest("[data-azione]");
+  if (!el || !api) return;
+  const azione = el.dataset.azione;
+
+  if (azione === "svuota"){
+    const presi = voci.filter(v => v.fatto);
+    if (!presi.length) return;
+    await Promise.all(presi.map(v => api.togli(v.id)));
+    avvisa(`Carrello svuotato (${presi.length})`, () => Promise.all(presi.map(v => api.ripristina(v))));
+    return;
+  }
+
+  const id = el.closest(".voce")?.dataset.id;
+  const v = voci.find(x => x.id === id);
+  if (!v) return;
+
+  if (azione === "spunta"){
+    if (navigator.vibrate) navigator.vibrate(12);
+    await api.aggiorna(id, v.fatto
+      ? { fatto:false, fattoDa:"", fattoIl:0 }
+      : { fatto:true, fattoDa: mioNome, fattoIl: Date.now() });
+  }
+  if (azione === "togli"){
+    await api.togli(id);
+    avvisa(`Eliminato: ${v.nome}`, () => api.ripristina(v));
+  }
+});
+
+/* toast con annulla */
+let timerToast;
+function avvisa(testo, annulla){
+  const t = $("toast"), b = $("toastAnnulla");
+  $("toastTesto").textContent = testo;
+  b.hidden = !annulla;
+  b.onclick = async () => { t.classList.remove("su"); if (annulla) await annulla(); };
+  t.classList.add("su");
+  clearTimeout(timerToast);
+  timerToast = setTimeout(() => t.classList.remove("su"), 4000);
+}
+
+/* nome */
+function aggiornaChiSono(){ $("cambiaNome").textContent = mioNome ? `Sei ${mioNome}. Cambia nome` : "Imposta il tuo nome"; }
+function chiediNome(){ $("veloNome").hidden = false; $("campoNome").value = mioNome; setTimeout(() => $("campoNome").focus(), 50); }
+$("cambiaNome").addEventListener("click", chiediNome);
+$("formNome").addEventListener("submit", e => {
+  e.preventDefault();
+  const n = $("campoNome").value.trim();
+  if (!n) return;
+  mioNome = n.charAt(0).toUpperCase() + n.slice(1);
+  store.set("spesa.nome", mioNome);
+  $("veloNome").hidden = true;
+  aggiornaChiSono();
+});
+
+/* avvio */
+aggiornaChiSono();
+if (!mioNome) chiediNome();
+try {
+  api = usaFirebase ? await avviaFirebase() : avviaProva();
+} catch (err) {
+  console.error(err);
+  stato("off", "Errore Firebase");
+  avvisa("Non riesco a collegarmi a Firebase: controlla la configurazione.");
+}
+window.addEventListener("hashchange", () => location.reload());
+</script>
+</body>
+</html>
