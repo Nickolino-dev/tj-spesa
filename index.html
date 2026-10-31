@@ -200,6 +200,25 @@ ul{list-style:none}
 }
 .aggiungi:active{transform:scale(.94)}
 .suggerimento{max-width:560px;margin:6px auto 0;font-size:13px;color:var(--tenue);min-height:18px;padding-left:4px}
+.proposte{
+  max-width:560px;margin:0 auto 8px;background:var(--superficie);border:1px solid var(--bordo);
+  border-radius:14px;box-shadow:var(--ombra);overflow:hidden;
+}
+.proposte[hidden]{display:none}
+.proposta{
+  display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:6px 14px;
+  border:0;background:transparent;color:var(--testo);text-align:left;cursor:pointer;
+  font:500 17px "Figtree",sans-serif;
+}
+.proposta + .proposta{border-top:1px solid var(--bordo)}
+.proposta:active{background:color-mix(in srgb,var(--inchiostro) 10%,transparent)}
+.proposta .pe{font-size:24px;width:30px;text-align:center;flex:none}
+.proposta .pn{flex:1;min-width:0}
+.proposta .pn b{font-weight:700;color:var(--inchiostro)}
+.proposta .pr{font-size:12.5px;color:var(--tenue);white-space:nowrap}
+.proposta.gia .pr{color:var(--basilico);font-weight:600}
+.icona{flex:none;font-size:26px;width:32px;text-align:center;line-height:1}
+.voce.fatto .icona{opacity:.45;filter:grayscale(.6)}
 
 /* ---------- foglio nome ---------- */
 .velo{position:fixed;inset:0;z-index:20;background:rgba(20,33,63,.45);display:grid;place-items:end center}
@@ -258,8 +277,9 @@ ul{list-style:none}
 </main>
 
 <div class="barra">
+  <div class="proposte" id="proposte" hidden></div>
   <form id="form" autocomplete="off">
-    <input id="campo" type="text" enterkeyhint="done" placeholder="Cosa serve? (es. 2 kg patate)" aria-label="Aggiungi alla lista" maxlength="80">
+    <input id="campo" type="text" enterkeyhint="done" placeholder="Cerca o scrivi (es. 2 mozzarelle)" aria-label="Aggiungi alla lista" maxlength="80">
     <button class="aggiungi" type="submit" aria-label="Aggiungi">+</button>
   </form>
   <p class="suggerimento" id="sugg"></p>
@@ -277,6 +297,7 @@ ul{list-style:none}
 <div class="toast" id="toast" role="status"><span id="toastTesto"></span><button id="toastAnnulla" type="button">Annulla</button></div>
 
 <script type="module">
+import { CATALOGO } from "./catalogo.js";
 /* ---------------- reparti e riconoscimento automatico ---------------- */
 const REPARTI = [
   {id:"frutta",  nome:"Frutta e verdura", em:"🥬", parole:"mela mele pera pere banan arancia arance limon mandarin kiwi uva frag pesca pesche albicocc ciliegi melone anguria ananas avocado pomodor insalat lattuga rucola carot zucchin melanzan peperon patat cipoll aglio sedano finocch spinac cavol broccol funghi fagiolin basilico prezzemolo verdur frutta zucca porri radicchio"},
@@ -309,6 +330,47 @@ let mioNome = store.get("spesa.nome") || "";
 const idLista = (decodeURIComponent(location.hash.slice(1)) || CONFIG.listaPredefinita || "famiglia")
   .toLowerCase().replace(/[^a-z0-9\-_]/g,"-").slice(0,40) || "famiglia";
 let voci = [];
+let prodotti = [];   // prodotti ricordati dalla famiglia (nuovi + quante volte comprati)
+
+/* ---------------- catalogo e ricerca ---------------- */
+const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+const chiave = s => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x";
+const RE_QTA = /^(\d+(?:[.,]\d+)?\s*(?:kg|g|gr|hg|l|lt|ml|cl|pz|pezzi|conf|confezioni|x|vasetti|bottiglie|pacchi|pacco|scatole)?\.?)\s+(.+)$/i;
+function separaQta(testo){
+  const m = testo.match(RE_QTA);
+  return m ? { qta: m[1].replace(/\s+/g, " "), resto: m[2] } : { qta: "", resto: testo };
+}
+const emReparto = id => (REPARTI.find(r => r.id === id) || REPARTI[REPARTI.length - 1]).em;
+const nomeReparto = id => (REPARTI.find(r => r.id === id) || REPARTI[REPARTI.length - 1]).nome;
+
+function indice(){
+  const mappa = new Map();
+  for (const c of CATALOGO) mappa.set(chiave(c.nome), { ...c, usi: 0 });
+  for (const p of prodotti){
+    const k = chiave(p.nome);
+    mappa.set(k, { ...(mappa.get(k) || {}), ...p, usi: p.usi || 0 });
+  }
+  return [...mappa.values()];
+}
+function cerca(testo, max = 5){
+  const q = norm(testo);
+  if (!q) return [];
+  const risultati = [];
+  for (const p of indice()){
+    const n = norm(p.nome);
+    let punti = 0;
+    if (n === q) punti = 100;
+    else if (n.startsWith(q)) punti = 80;
+    else if (n.split(" ").some(w => w.startsWith(q))) punti = 60;
+    else if (q.length >= 3 && n.includes(q)) punti = 30;
+    if (punti) risultati.push({ ...p, punti: punti + Math.min(p.usi || 0, 15) });
+  }
+  return risultati.sort((a, b) => b.punti - a.punti || a.nome.length - b.nome.length).slice(0, max);
+}
+function trovaEsatto(testo){
+  const k = chiave(testo);
+  return indice().find(p => chiave(p.nome) === k) || null;
+}
 
 /* ---------------- backend: Firebase o prova locale ---------------- */
 let api;
@@ -334,7 +396,15 @@ async function avviaFirebase(){
     disegna();
   }, err => { stato("off", "Errore di connessione"); console.error(err); });
 
+  const colProd = fs.collection(db, "liste", idLista, "prodotti");
+  fs.onSnapshot(colProd, snap => {
+    prodotti = snap.docs.map(d => d.data());
+    aggiornaProposte();
+  }, err => console.error(err));
+
   return {
+    registraProdotto: p => fs.setDoc(fs.doc(colProd, chiave(p.nome)),
+      { nome: p.nome, em: p.em, reparto: p.reparto, usi: fs.increment(1), ultimo: Date.now() }, { merge: true }),
     aggiungi: v => fs.addDoc(col, { ...v, creato: fs.serverTimestamp() }),
     aggiorna: (id, campi) => fs.updateDoc(fs.doc(col, id), campi),
     togli: id => fs.deleteDoc(fs.doc(col, id)),
@@ -345,13 +415,23 @@ async function avviaFirebase(){
 function avviaProva(){
   $("avvisoDemo").hidden = false;
   stato("", "Solo su questo telefono");
-  const chiave = "spesa.prova." + idLista;
-  let canale = null; try { canale = new BroadcastChannel(chiave) } catch {}
-  const leggi = () => { try { return JSON.parse(store.get(chiave) || "[]") } catch { return [] } };
-  const salva = arr => { store.set(chiave, JSON.stringify(arr)); voci = arr; disegna(); canale?.postMessage(1); };
+  const chiaveLista = "spesa.prova." + idLista;
+  let canale = null; try { canale = new BroadcastChannel(chiaveLista) } catch {}
+  const leggi = () => { try { return JSON.parse(store.get(chiaveLista) || "[]") } catch { return [] } };
+  const salva = arr => { store.set(chiaveLista, JSON.stringify(arr)); voci = arr; disegna(); canale?.postMessage(1); };
+  const chiaveProd = "spesa.prodotti." + idLista;
+  const leggiProd = () => { try { return JSON.parse(store.get(chiaveProd) || "[]") } catch { return [] } };
+  prodotti = leggiProd();
   voci = leggi(); disegna();
-  if (canale) canale.onmessage = () => { voci = leggi(); disegna(); };
+  if (canale) canale.onmessage = () => { voci = leggi(); prodotti = leggiProd(); disegna(); };
   return {
+    registraProdotto: async p => {
+      const arr = leggiProd(); const k = chiave(p.nome);
+      const es = arr.find(x => chiave(x.nome) === k);
+      if (es) { es.usi = (es.usi || 0) + 1; es.ultimo = Date.now(); }
+      else arr.push({ nome: p.nome, em: p.em, reparto: p.reparto, usi: 1, ultimo: Date.now() });
+      store.set(chiaveProd, JSON.stringify(arr)); prodotti = arr; canale?.postMessage(1);
+    },
     aggiungi: async v => salva([...leggi(), { ...v, id: crypto.randomUUID?.() || String(Date.now()+Math.random()), creato: Date.now() }]),
     aggiorna: async (id, c) => salva(leggi().map(x => x.id === id ? { ...x, ...c } : x)),
     togli: async id => salva(leggi().filter(x => x.id !== id)),
@@ -369,6 +449,7 @@ function rigaVoce(v){
     : (v.da ? `aggiunto da ${esc(v.da)}` : "");
   return `<li class="voce${v.fatto ? " fatto" : ""}" data-id="${esc(v.id)}">
     <button class="spunta" data-azione="spunta" aria-label="${v.fatto ? "Rimetti in lista" : "Segna come preso"}: ${esc(v.nome)}">${SPUNTA}</button>
+    <span class="icona" aria-hidden="true">${esc(v.em || emReparto(v.reparto))}</span>
     <div class="corpo" data-azione="spunta"><span class="nome">${esc(v.nome)}</span>${info ? `<span class="chi">${info}</span>` : ""}</div>
     <button class="togli" data-azione="togli" aria-label="Elimina ${esc(v.nome)}">×</button>
   </li>`;
@@ -400,23 +481,74 @@ function disegna(){
 }
 
 /* ---------------- interazioni ---------------- */
-$("campo").addEventListener("input", e => {
-  const t = e.target.value.trim();
-  const r = REPARTI.find(x => x.id === indovinaReparto(t));
-  $("sugg").textContent = t ? `Andrà in: ${r.em} ${r.nome}` : "";
+/* proposte mentre scrivi */
+const giaInLista = nome => voci.some(v => !v.fatto && chiave(separaQta(v.nome).resto) === chiave(nome));
+function aggiornaProposte(){
+  const box = $("proposte");
+  const testo = $("campo").value.trim();
+  const { resto } = separaQta(testo);
+  const trovati = cerca(resto);
+  if (!testo || !trovati.length){
+    box.hidden = true; box.innerHTML = "";
+    const r = testo ? indovinaReparto(resto) : null;
+    $("sugg").textContent = testo ? `Prodotto nuovo: andrà in ${emReparto(r)} ${nomeReparto(r)}` : "";
+    return;
+  }
+  $("sugg").textContent = "";
+  const q = norm(resto);
+  box.innerHTML = trovati.map((p, i) => {
+    const gia = giaInLista(p.nome);
+    const n = esc(p.nome);
+    const evid = norm(p.nome).startsWith(q) ? `<b>${esc(p.nome.slice(0, q.length))}</b>${esc(p.nome.slice(q.length))}` : n;
+    return `<button type="button" class="proposta${gia ? " gia" : ""}" data-i="${i}">
+      <span class="pe" aria-hidden="true">${esc(p.em || emReparto(p.reparto))}</span>
+      <span class="pn">${evid}</span>
+      <span class="pr">${gia ? "Già in lista" : esc(nomeReparto(p.reparto))}</span></button>`;
+  }).join("");
+  box._trovati = trovati;
+  box.hidden = false;
+}
+$("campo").addEventListener("input", aggiornaProposte);
+$("campo").addEventListener("focus", aggiornaProposte);
+$("campo").addEventListener("blur", () => setTimeout(() => { $("proposte").hidden = true; }, 150));
+// tenere la tastiera aperta quando si tocca una proposta
+$("proposte").addEventListener("pointerdown", e => e.preventDefault());
+$("proposte").addEventListener("click", e => {
+  const b = e.target.closest(".proposta");
+  if (!b) return;
+  const p = $("proposte")._trovati[+b.dataset.i];
+  const { qta } = separaQta($("campo").value.trim());
+  aggiungiProdotto(p, qta);
 });
 
-$("form").addEventListener("submit", async e => {
-  e.preventDefault();
+async function aggiungiProdotto(p, qta){
   const campo = $("campo");
-  const nome = campo.value.trim().replace(/\s+/g, " ");
-  if (!nome || !api) return;
-  const nomeBello = nome.charAt(0).toUpperCase() + nome.slice(1);
-  campo.value = ""; $("sugg").textContent = "";
-  campo.focus();
+  if (!api) return;
+  if (giaInLista(p.nome) && !qta){
+    avvisa(`${p.nome} è già in lista`);
+    campo.value = ""; aggiornaProposte(); campo.focus();
+    return;
+  }
+  campo.value = ""; aggiornaProposte(); campo.focus();
+  const nome = (qta ? qta + " " : "") + p.nome;
   try {
-    await api.aggiungi({ nome: nomeBello, reparto: indovinaReparto(nome), da: mioNome, fatto: false });
+    await api.aggiungi({ nome, em: p.em || emReparto(p.reparto), reparto: p.reparto, da: mioNome, fatto: false });
+    api.registraProdotto(p).catch(err => console.error(err));
   } catch (err) { avvisa("Non sono riuscito ad aggiungere. Controlla la connessione."); console.error(err); }
+}
+
+$("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const testo = $("campo").value.trim().replace(/\s+/g, " ");
+  if (!testo) return;
+  const { qta, resto } = separaQta(testo);
+  let p = trovaEsatto(resto);
+  if (!p){
+    const nome = resto.charAt(0).toUpperCase() + resto.slice(1);
+    const reparto = indovinaReparto(resto);
+    p = { nome, reparto, em: emReparto(reparto) };
+  }
+  aggiungiProdotto(p, qta);
 });
 
 $("lista").addEventListener("click", async e => {
