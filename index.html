@@ -371,6 +371,25 @@ function trovaEsatto(testo){
   const k = chiave(testo);
   return indice().find(p => chiave(p.nome) === k) || null;
 }
+// riconosce il prodotto anche se scritto diverso (es. "Panini imbustati" -> Panini)
+function riconosci(testo){
+  const { resto } = separaQta(testo);
+  const esatto = trovaEsatto(resto);
+  if (esatto) return esatto;
+  const parole = norm(resto).split(" ").filter(w => w.length >= 3);
+  for (const w of parole){
+    const top = cerca(w, 1)[0];
+    if (top && top.punti >= 60) return top;
+  }
+  return null;
+}
+// icona e reparto di una voce: quelli salvati, altrimenti riconosciuti dal nome
+function aspetto(v){
+  if (v.em) return { em: v.em, reparto: v.reparto || "altro" };
+  const p = riconosci(v.nome);
+  if (p) return { em: p.em, reparto: p.reparto };
+  return { em: emReparto(v.reparto), reparto: v.reparto || "altro" };
+}
 
 /* ---------------- backend: Firebase o prova locale ---------------- */
 let api;
@@ -401,7 +420,7 @@ async function avviaFirebase(){
   const colProd = fs.collection(db, "liste", idLista, "prodotti");
   fs.onSnapshot(colProd, snap => {
     prodotti = snap.docs.map(d => d.data());
-    aggiornaProposte();
+    aggiornaProposte(); disegna();
   }, err => console.error(err));
 
   return {
@@ -451,7 +470,7 @@ function rigaVoce(v){
     : (v.da ? `aggiunto da ${esc(v.da)}` : "");
   return `<li class="voce${v.fatto ? " fatto" : ""}" data-id="${esc(v.id)}">
     <button class="spunta" data-azione="spunta" aria-label="${v.fatto ? "Rimetti in lista" : "Segna come preso"}: ${esc(v.nome)}">${SPUNTA}</button>
-    <span class="icona" aria-hidden="true">${esc(v.em || emReparto(v.reparto))}</span>
+    <span class="icona" aria-hidden="true">${esc(aspetto(v).em)}</span>
     <div class="corpo" data-azione="spunta"><span class="nome">${esc(v.nome)}</span>${info ? `<span class="chi">${info}</span>` : ""}</div>
     <button class="togli" data-azione="togli" aria-label="Elimina ${esc(v.nome)}">×</button>
   </li>`;
@@ -466,7 +485,7 @@ function disegna(){
     html = `<div class="vuoto"><p>Lista vuota</p><p>Scrivi qui sotto la prima cosa che serve.</p></div>`;
   }
   for (const r of REPARTI){
-    const gruppo = daPrendere.filter(v => (v.reparto || "altro") === r.id);
+    const gruppo = daPrendere.filter(v => aspetto(v).reparto === r.id);
     if (!gruppo.length) continue;
     html += `<section class="reparto"><h2><span class="em" aria-hidden="true">${r.em}</span>${r.nome}</h2><ul>${gruppo.map(rigaVoce).join("")}</ul></section>`;
   }
@@ -547,8 +566,9 @@ $("form").addEventListener("submit", e => {
   let p = trovaEsatto(resto);
   if (!p){
     const nome = resto.charAt(0).toUpperCase() + resto.slice(1);
-    const reparto = indovinaReparto(resto);
-    p = { nome, reparto, em: emReparto(reparto) };
+    const simile = riconosci(resto);
+    const reparto = simile ? simile.reparto : indovinaReparto(resto);
+    p = { nome, reparto, em: simile ? simile.em : emReparto(reparto) };
   }
   aggiungiProdotto(p, qta);
 });

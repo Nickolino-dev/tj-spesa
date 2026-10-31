@@ -20,7 +20,7 @@ Baccalà 🐟|Gamberi 🦐|Calamari 🦑|Seppie 🦑|Polpo 🐙|Cozze 🦪|Vongo
   latte: `
 Latte 🥛|Latte senza lattosio 🥛|Latte di soia 🥛|Latte di mandorla 🥛|Yogurt 🥣|Yogurt greco 🥣|
 Burro 🧈|Panna 🥛|Panna da cucina 🥛|Uova 🥚|Mozzarella 🧀|Burrata 🧀|Parmigiano 🧀|Grana 🧀|
-Formaggio grattugiato 🧀|Pecorino 🧀|Ricotta 🧀|Stracchino 🧀|Mascarpone 🧀|Scamorza 🧀|Provola 🧀|
+Formaggio 🧀|Formaggio grattugiato 🧀|Pecorino 🧀|Ricotta 🧀|Stracchino 🧀|Mascarpone 🧀|Scamorza 🧀|Provola 🧀|
 Gorgonzola 🧀|Fontina 🧀|Asiago 🧀|Emmental 🧀|Feta 🧀|Sottilette 🧀|Formaggio spalmabile 🧀|
 Prosciutto cotto 🥓|Prosciutto crudo 🥓|Salame 🥓|Ciauscolo 🥓|Mortadella 🥓|Bresaola 🥓|Speck 🥓|
 Pancetta 🥓|Guanciale 🥓|Tacchino affettato 🥓|Porchetta 🥓|Wurstel 🌭`,
@@ -28,7 +28,7 @@ Pancetta 🥓|Guanciale 🥓|Tacchino affettato 🥓|Porchetta 🥓|Wurstel 🌭
 Pane 🍞|Pane in cassetta 🍞|Pane integrale 🍞|Panini 🥖|Baguette 🥖|Piadine 🫓|Focaccia 🫓|
 Pizza base 🍕|Grissini 🥖|Crackers 🍘|Taralli 🥨|Fette biscottate 🍞|Biscotti 🍪|Cornetti 🥐|
 Brioche 🥐|Merendine 🧁|Torta 🍰|Cereali 🥣|Muesli 🥣|Fiocchi d'avena 🥣|Marmellata 🍓|
-Crema alla nocciola 🍫|Miele 🍯|Caffè ☕|Caffè in capsule ☕|Caffè solubile ☕|Orzo ☕|Tè 🍵|
+Crema alla nocciola 🍫|Nutella 🍫|Miele 🍯|Caffè ☕|Caffè in capsule ☕|Caffè solubile ☕|Orzo ☕|Tè 🍵|
 Tisane 🍵|Camomilla 🍵|Cacao 🍫`,
   dispensa: `
 Pasta 🍝|Spaghetti 🍝|Penne 🍝|Fusilli 🍝|Rigatoni 🍝|Linguine 🍝|Pasta all'uovo 🍝|Lasagne 🍝|
@@ -36,21 +36,21 @@ Gnocchi 🥔|Tortellini 🥟|Ravioli 🥟|Riso 🍚|Riso basmati 🍚|Riso per r
 Farina 🌾|Farina di mais 🌽|Pangrattato 🍞|Lievito 🧁|Zucchero 🍬|Sale 🧂|Sale grosso 🧂|Pepe 🧂|
 Olio extravergine 🫒|Olio di semi 🫗|Aceto 🫗|Aceto balsamico 🫗|Passata di pomodoro 🥫|Pelati 🥫|
 Polpa di pomodoro 🥫|Concentrato di pomodoro 🥫|Sugo pronto 🥫|Pesto 🌿|Ragù pronto 🥫|
-Tonno in scatola 🥫|Sgombro in scatola 🥫|Ceci 🫘|Fagioli 🫘|Lenticchie 🫘|Mais in scatola 🌽|
+Tonno 🥫|Tonno in scatola 🥫|Sgombro in scatola 🥫|Ceci 🫘|Fagioli 🫘|Lenticchie 🫘|Mais in scatola 🌽|
 Piselli in scatola 🫛|Olive 🫒|Capperi 🫒|Sottaceti 🥒|Funghi sott'olio 🍄|Dado 🧂|Brodo 🍲|
 Maionese 🥚|Ketchup 🍅|Senape 🌭|Spezie 🌿|Origano 🌿|Curry 🌿|Noce moscata 🌰|Cioccolato 🍫|
 Cioccolato fondente 🍫|Patatine 🥔|Popcorn 🍿|Salatini 🥨|Caramelle 🍬|Gomme da masticare 🍬|
 Gallette di riso 🍘|Budino 🍮|Panna spray 🍦|Purè 🥔`,
   bevande: `
 Acqua naturale 💧|Acqua frizzante 💧|Vino rosso 🍷|Vino bianco 🥂|Prosecco 🍾|Spumante 🍾|Birra 🍺|
-Succhi di frutta 🧃|Spremuta 🍊|Cola 🥤|Aranciata 🥤|Tè freddo 🧋|Gassosa 🥤|Acqua tonica 🥤|
+Succhi di frutta 🧃|Spremuta 🍊|Cola 🥤|Coca Cola 🥤|Aranciata 🥤|Tè freddo 🧋|Gassosa 🥤|Acqua tonica 🥤|
 Bibite 🥤|Liquore 🥃|Amaro 🥃|Aperitivo 🍹`,
   surgelati: `
 Gelato 🍨|Ghiaccioli 🍦|Pizza surgelata 🍕|Bastoncini di pesce 🐟|Verdure surgelate 🥦|
 Minestrone surgelato 🍲|Spinaci surgelati 🥬|Piselli surgelati 🫛|Patatine surgelate 🍟|
 Cotolette surgelate 🍗|Frutti di mare surgelati 🦐|Ghiaccio 🧊`,
   casa: `
-Carta igienica 🧻|Carta da cucina 🧻|Tovaglioli 🧻|Fazzoletti 🤧|Detersivo piatti 🧽|
+Carta igienica 🧻|Carta da cucina 🧻|Scottex 🧻|Tovaglioli 🧻|Fazzoletti 🤧|Detersivo piatti 🧽|
 Pastiglie lavastoviglie 🧼|Detersivo lavatrice 🧺|Ammorbidente 🧺|Candeggina 🧴|Sgrassatore 🧴|
 Detergente pavimenti 🧹|Anticalcare 🧴|Spugne 🧽|Sacchetti spazzatura 🗑️|Pellicola trasparente 📦|
 Alluminio 📦|Carta forno 📜|Sacchetti gelo 📦|Shampoo 🧴|Balsamo 🧴|Bagnoschiuma 🧴|Sapone 🧼|
