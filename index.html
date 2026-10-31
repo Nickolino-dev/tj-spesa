@@ -154,9 +154,9 @@ ul{list-style:none}
   transform:scaleX(0) rotate(-1.5deg);transform-origin:left center;
   transition:transform .32s cubic-bezier(.6,.05,.3,1);
 }
-.chi{display:block;font-size:12.5px;color:var(--tenue);margin-top:2px}
+.chi{display:block;font-size:12.5px;color:var(--tenue);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .togli{
-  flex:none;width:40px;height:40px;border:0;background:transparent;border-radius:10px;
+  flex:none;width:36px;height:40px;border:0;background:transparent;border-radius:10px;
   color:var(--tenue);font-size:22px;line-height:1;cursor:pointer;
 }
 .togli:active{background:color-mix(in srgb,var(--margine) 12%,transparent);color:var(--margine)}
@@ -257,6 +257,22 @@ ul{list-style:none}
   margin-top:12px;width:100%;padding:15px;border:0;border-radius:12px;
   background:var(--inchiostro);color:var(--carta);font:600 17px "Figtree",sans-serif;cursor:pointer;
 }
+.scheda label{display:block;font-size:14px;font-weight:600;color:var(--tenue);margin-top:14px}
+.scheda label input,.scheda label select{margin-top:6px}
+.scheda select{
+  width:100%;font:500 17px "Figtree",sans-serif;padding:13px 12px;border-radius:12px;
+  border:2px solid var(--bordo);background:var(--superficie);color:var(--testo);outline:none;
+}
+.scheda select:focus{border-color:var(--inchiostro)}
+.scheda .azioni{display:grid;grid-template-columns:1fr 1.6fr;gap:10px;margin-top:8px}
+.scheda .azioni button{margin-top:12px}
+.scheda button.secondario{background:transparent;color:var(--inchiostro);border:2px solid var(--bordo)}
+.matita{
+  flex:none;width:36px;height:40px;border:0;background:transparent;border-radius:10px;
+  color:var(--tenue);cursor:pointer;display:grid;place-items:center;
+}
+.matita svg{width:19px;height:19px;stroke:currentColor;stroke-width:2;fill:none}
+.matita:active{background:color-mix(in srgb,var(--inchiostro) 12%,transparent);color:var(--inchiostro)}
 .chi-sono{
   border:0;background:transparent;color:var(--tenue);font:500 13px "Figtree",sans-serif;
   text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px 0;
@@ -308,6 +324,25 @@ ul{list-style:none}
     <p>Il tuo nome compare accanto alle cose che aggiungi, così gli altri sanno chi le ha chieste.</p>
     <input id="campoNome" type="text" placeholder="Il tuo nome" maxlength="20" required>
     <button type="submit">Inizia la lista</button>
+  </form>
+</div>
+
+<div class="velo" id="veloModifica" hidden>
+  <form class="scheda" id="formModifica" autocomplete="off">
+    <h3>Modifica</h3>
+    <label>Prodotto
+      <input id="modNome" type="text" maxlength="70" required>
+    </label>
+    <label>Quantità
+      <input id="modQta" type="text" maxlength="15" placeholder="es. 2, 1 kg, 3 conf">
+    </label>
+    <label>Reparto
+      <select id="modReparto"></select>
+    </label>
+    <div class="azioni">
+      <button type="button" class="secondario" id="modAnnulla">Annulla</button>
+      <button type="submit">Salva modifiche</button>
+    </div>
   </form>
 </div>
 
@@ -365,6 +400,7 @@ function indice(){
   for (const c of CATALOGO) mappa.set(chiave(c.nome), { ...c, usi: 0 });
   for (const p of prodotti){
     const k = chiave(p.nome);
+    if (!mappa.has(k) && (p.usi || 0) <= 0) continue;   // scritto male e poi corretto
     mappa.set(k, { ...(mappa.get(k) || {}), ...p, usi: p.usi || 0 });
   }
   return [...mappa.values()];
@@ -442,6 +478,7 @@ async function avviaFirebase(){
   }, err => console.error(err));
 
   return {
+    dimenticaProdotto: nome => fs.updateDoc(fs.doc(colProd, chiave(nome)), { usi: fs.increment(-1) }),
     registraProdotto: p => fs.setDoc(fs.doc(colProd, chiave(p.nome)),
       { nome: p.nome, em: p.em, reparto: p.reparto, usi: fs.increment(1), ultimo: Date.now() }, { merge: true }),
     aggiungi: v => fs.addDoc(col, { ...v, creato: fs.serverTimestamp() }),
@@ -464,6 +501,10 @@ function avviaProva(){
   voci = leggi(); disegna();
   if (canale) canale.onmessage = () => { voci = leggi(); prodotti = leggiProd(); disegna(); };
   return {
+    dimenticaProdotto: async nome => {
+      const arr = leggiProd(); const es = arr.find(x => chiave(x.nome) === chiave(nome));
+      if (es) { es.usi = (es.usi || 0) - 1; store.set(chiaveProd, JSON.stringify(arr)); prodotti = arr; }
+    },
     registraProdotto: async p => {
       const arr = leggiProd(); const k = chiave(p.nome);
       const es = arr.find(x => chiave(x.nome) === k);
@@ -490,6 +531,7 @@ function rigaVoce(v){
     <button class="spunta" data-azione="spunta" aria-label="${v.fatto ? "Rimetti in lista" : "Segna come preso"}: ${esc(v.nome)}">${SPUNTA}</button>
     <span class="icona" aria-hidden="true">${esc(aspetto(v).em)}</span>
     <div class="corpo" data-azione="spunta"><span class="nome">${esc(separaQta(v.nome).resto)}</span>${separaQta(v.nome).qta ? `<span class="qta">${esc(separaQta(v.nome).qta)}</span>` : ""}${info ? `<span class="chi">${info}</span>` : ""}</div>
+    <button class="matita" data-azione="modifica" aria-label="Modifica ${esc(v.nome)}"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z" stroke-linejoin="round"/><path d="M13.5 6.5l4 4"/></svg></button>
     <button class="togli" data-azione="togli" aria-label="Elimina ${esc(v.nome)}">×</button>
   </li>`;
 }
@@ -635,10 +677,56 @@ $("lista").addEventListener("click", async e => {
       ? { fatto:false, fattoDa:"", fattoIl:0 }
       : { fatto:true, fattoDa: mioNome, fattoIl: Date.now() });
   }
+  if (azione === "modifica"){ apriModifica(v); return; }
   if (azione === "togli"){
     await api.togli(id);
     avvisa(`Eliminato: ${v.nome}`, () => api.ripristina(v));
   }
+});
+
+/* modifica di una voce */
+let inModifica = null, repartoToccato = false;
+$("modReparto").innerHTML = REPARTI.map(r => `<option value="${r.id}">${r.em} ${r.nome}</option>`).join("");
+function apriModifica(v){
+  inModifica = v; repartoToccato = false;
+  const { qta, resto } = separaQta(v.nome);
+  $("modNome").value = resto;
+  $("modQta").value = qta;
+  $("modReparto").value = aspetto(v).reparto;
+  $("veloModifica").hidden = false;
+  setTimeout(() => { const c = $("modNome"); c.focus(); c.setSelectionRange(c.value.length, c.value.length); }, 60);
+}
+function chiudiModifica(){ $("veloModifica").hidden = true; inModifica = null; }
+$("modAnnulla").addEventListener("click", chiudiModifica);
+$("veloModifica").addEventListener("click", e => { if (e.target.id === "veloModifica") chiudiModifica(); });
+$("modReparto").addEventListener("change", () => { repartoToccato = true; });
+// mentre correggi il nome, il reparto si aggiorna da solo (finché non lo scegli tu)
+$("modNome").addEventListener("input", () => {
+  if (repartoToccato) return;
+  const p = riconosci($("modNome").value);
+  if (p) $("modReparto").value = p.reparto;
+});
+$("formModifica").addEventListener("submit", async e => {
+  e.preventDefault();
+  const v = inModifica;
+  if (!v || !api) return;
+  const grezzo = $("modNome").value.trim().replace(/\s+/g, " ");
+  if (!grezzo) return;
+  const nomeNuovo = grezzo.charAt(0).toUpperCase() + grezzo.slice(1);
+  const qta = $("modQta").value.trim().replace(/\s+/g, " ");
+  const reparto = $("modReparto").value;
+  const p = riconosci(nomeNuovo);
+  const em = p && p.reparto === reparto ? p.em : (p && !repartoToccato ? p.em : emReparto(reparto));
+  const vecchioNome = separaQta(v.nome).resto;
+  chiudiModifica();
+  try {
+    await api.aggiorna(v.id, { nome: (qta ? qta + " " : "") + nomeNuovo, em, reparto });
+    if (chiave(vecchioNome) !== chiave(nomeNuovo)){
+      api.dimenticaProdotto(vecchioNome).catch(() => {});
+      api.registraProdotto({ nome: p && chiave(p.nome) === chiave(nomeNuovo) ? p.nome : nomeNuovo, em, reparto }).catch(err => console.error(err));
+    }
+    avvisa("Modifica salvata");
+  } catch (err) { avvisa("Non sono riuscito a salvare. Controlla la connessione."); console.error(err); }
 });
 
 /* toast con annulla */
