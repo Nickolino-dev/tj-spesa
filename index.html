@@ -390,9 +390,11 @@ async function avviaFirebase(){
   await au.signInAnonymously(au.getAuth(app));
   const col = fs.collection(db, "liste", idLista, "articoli");
 
-  fs.onSnapshot(col, snap => {
+  fs.onSnapshot(col, { includeMetadataChanges: true }, snap => {
     voci = snap.docs.map(d => ({ id:d.id, ...d.data(), creato: d.data().creato?.toMillis?.() ?? Date.now() }));
-    stato(snap.metadata.fromCache ? "off" : "ok", snap.metadata.fromCache ? "Offline" : "Sincronizzata");
+    if (!snap.metadata.fromCache) stato("ok", "Sincronizzata");
+    else if (!navigator.onLine) stato("off", "Offline");
+    else stato("", "Collegamento…");
     disegna();
   }, err => { stato("off", "Errore di connessione"); console.error(err); });
 
@@ -617,6 +619,7 @@ try {
   avvisa("Non riesco a collegarmi a Firebase: controlla la configurazione.");
 }
 window.addEventListener("hashchange", () => location.reload());
+window.addEventListener("offline", () => stato("off", "Offline"));
 </script>
 </body>
 </html>
