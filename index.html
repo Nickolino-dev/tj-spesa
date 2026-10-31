@@ -218,6 +218,23 @@ ul{list-style:none}
 .proposta .pr{font-size:12.5px;color:var(--tenue);white-space:nowrap}
 .proposta.gia .pr{color:var(--basilico);font-weight:600}
 .icona{flex:none;font-size:26px;width:32px;text-align:center;line-height:1}
+.qta{
+  display:inline-block;vertical-align:2px;margin-left:8px;padding:2px 9px;border-radius:999px;
+  font-size:13px;font-weight:700;color:var(--inchiostro);
+  background:color-mix(in srgb,var(--inchiostro) 13%,transparent);white-space:nowrap;
+}
+.voce.fatto .qta{color:var(--tenue);background:transparent;border:1px solid var(--bordo)}
+.frequenti{margin:0 0 22px}
+.frequenti h2{font-family:"Caveat",cursive;font-weight:700;font-size:24px;color:var(--inchiostro);margin-bottom:6px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin-right:-16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:none;display:flex;align-items:center;gap:6px;min-height:42px;padding:6px 14px 6px 10px;
+  border:1px solid var(--bordo);border-radius:999px;background:var(--superficie);color:var(--testo);
+  font:500 15px "Figtree",sans-serif;cursor:pointer;white-space:nowrap;box-shadow:var(--ombra);
+}
+.chip span{font-size:20px;line-height:1}
+.chip:active{transform:scale(.96)}
 .voce.fatto .icona{opacity:.45;filter:grayscale(.6)}
 
 /* ---------- foglio nome ---------- */
@@ -367,6 +384,7 @@ function cerca(testo, max = 5){
   }
   return risultati.sort((a, b) => b.punti - a.punti || a.nome.length - b.nome.length).slice(0, max);
 }
+function giaInLista(nome){ return voci.some(v => !v.fatto && chiave(separaQta(v.nome).resto) === chiave(nome)); }
 function trovaEsatto(testo){
   const k = chiave(testo);
   return indice().find(p => chiave(p.nome) === k) || null;
@@ -471,18 +489,30 @@ function rigaVoce(v){
   return `<li class="voce${v.fatto ? " fatto" : ""}" data-id="${esc(v.id)}">
     <button class="spunta" data-azione="spunta" aria-label="${v.fatto ? "Rimetti in lista" : "Segna come preso"}: ${esc(v.nome)}">${SPUNTA}</button>
     <span class="icona" aria-hidden="true">${esc(aspetto(v).em)}</span>
-    <div class="corpo" data-azione="spunta"><span class="nome">${esc(v.nome)}</span>${info ? `<span class="chi">${info}</span>` : ""}</div>
+    <div class="corpo" data-azione="spunta"><span class="nome">${esc(separaQta(v.nome).resto)}</span>${separaQta(v.nome).qta ? `<span class="qta">${esc(separaQta(v.nome).qta)}</span>` : ""}${info ? `<span class="chi">${info}</span>` : ""}</div>
     <button class="togli" data-azione="togli" aria-label="Elimina ${esc(v.nome)}">×</button>
   </li>`;
 }
 
+function frequenti(){
+  return prodotti
+    .filter(p => (p.usi || 0) >= 1 && !giaInLista(p.nome))
+    .sort((a, b) => (b.usi || 0) - (a.usi || 0) || (b.ultimo || 0) - (a.ultimo || 0))
+    .slice(0, 12);
+}
 function disegna(){
   const daPrendere = voci.filter(v => !v.fatto).sort((a,b) => a.creato - b.creato);
   const presi = voci.filter(v => v.fatto).sort((a,b) => (b.fattoIl||0) - (a.fattoIl||0));
   let html = "";
 
+  const freq = frequenti();
+  if (freq.length){
+    html += `<section class="frequenti"><h2>Compri spesso</h2><div class="chips">${
+      freq.map(p => `<button class="chip" data-azione="frequente" data-k="${esc(chiave(p.nome))}"><span aria-hidden="true">${esc(p.em || emReparto(p.reparto))}</span>${esc(p.nome)}</button>`).join("")
+    }</div></section>`;
+  }
   if (!voci.length){
-    html = `<div class="vuoto"><p>Lista vuota</p><p>Scrivi qui sotto la prima cosa che serve.</p></div>`;
+    html += `<div class="vuoto"><p>Lista vuota</p><p>Scrivi qui sotto la prima cosa che serve.</p></div>`;
   }
   for (const r of REPARTI){
     const gruppo = daPrendere.filter(v => aspetto(v).reparto === r.id);
@@ -503,7 +533,7 @@ function disegna(){
 
 /* ---------------- interazioni ---------------- */
 /* proposte mentre scrivi */
-const giaInLista = nome => voci.some(v => !v.fatto && chiave(separaQta(v.nome).resto) === chiave(nome));
+
 function aggiornaProposte(){
   const box = $("proposte");
   const testo = $("campo").value.trim();
@@ -542,15 +572,19 @@ $("proposte").addEventListener("click", e => {
   aggiungiProdotto(p, qta);
 });
 
-async function aggiungiProdotto(p, qta){
+async function aggiungiProdotto(p, qta, focus = true){
   const campo = $("campo");
   if (!api) return;
-  if (giaInLista(p.nome) && !qta){
-    avvisa(`${p.nome} è già in lista`);
-    campo.value = ""; aggiornaProposte(); campo.focus();
+  const esistente = voci.find(v => !v.fatto && chiave(separaQta(v.nome).resto) === chiave(p.nome));
+  if (esistente){
+    campo.value = ""; aggiornaProposte(); if (focus) campo.focus();
+    if (!qta) { avvisa(`${p.nome} è già in lista`); return; }
+    const nuovo = qta + " " + separaQta(esistente.nome).resto;
+    try { await api.aggiorna(esistente.id, { nome: nuovo }); avvisa(`Aggiornato: ${nuovo}`); }
+    catch (err) { console.error(err); }
     return;
   }
-  campo.value = ""; aggiornaProposte(); campo.focus();
+  campo.value = ""; aggiornaProposte(); if (focus) campo.focus();
   const nome = (qta ? qta + " " : "") + p.nome;
   try {
     await api.aggiungi({ nome, em: p.em || emReparto(p.reparto), reparto: p.reparto, da: mioNome, fatto: false });
@@ -578,6 +612,11 @@ $("lista").addEventListener("click", async e => {
   if (!el || !api) return;
   const azione = el.dataset.azione;
 
+  if (azione === "frequente"){
+    const p = prodotti.find(x => chiave(x.nome) === el.dataset.k);
+    if (p) { if (navigator.vibrate) navigator.vibrate(12); aggiungiProdotto(p, "", false); }
+    return;
+  }
   if (azione === "svuota"){
     const presi = voci.filter(v => v.fatto);
     if (!presi.length) return;
