@@ -236,6 +236,8 @@ ul{list-style:none}
 .chip span{font-size:20px;line-height:1}
 .chip:active{transform:scale(.96)}
 .voce.fatto .icona{opacity:.45;filter:grayscale(.6)}
+.voce.fatto .chi{white-space:normal}
+header h1{white-space:nowrap;min-width:0}
 
 /* ---------- foglio nome ---------- */
 .velo{position:fixed;inset:0;z-index:20;background:rgba(20,33,63,.45);display:grid;place-items:end center}
@@ -288,6 +290,64 @@ ul{list-style:none}
 .toast.su{opacity:1;transform:translate(-50%,0);pointer-events:auto}
 .toast button{border:0;background:transparent;color:var(--basilico);font:700 14px "Figtree";margin-left:10px;cursor:pointer}
 
+/* ---------- storico ---------- */
+.testata-dx{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.apri-storico{
+  display:flex;align-items:center;gap:6px;min-height:38px;padding:6px 13px 6px 10px;
+  border:2px solid var(--inchiostro);border-radius:999px;background:var(--superficie);
+  color:var(--inchiostro);font:600 14.5px "Figtree",sans-serif;cursor:pointer;box-shadow:var(--ombra);
+}
+.apri-storico span{font-size:17px;line-height:1}
+.apri-storico:active{transform:scale(.96)}
+body.in-storico .foglio-lista,body.in-storico .barra{display:none}
+.storico[hidden]{display:none}
+.indietro{
+  border:0;background:transparent;color:var(--inchiostro);font:600 16px "Figtree",sans-serif;
+  padding:8px 10px 8px 0;cursor:pointer;display:flex;align-items:center;gap:4px;margin-bottom:4px;
+}
+.indietro svg{width:20px;height:20px;stroke:currentColor;stroke-width:2.4;fill:none}
+.storico h1{margin-bottom:6px}
+.sottotitolo{font-size:15px;color:var(--tenue);margin:6px 0 16px}
+.cerca-storico{
+  position:sticky;top:calc(env(safe-area-inset-top) + 8px);z-index:3;margin-bottom:20px;
+  display:flex;align-items:center;gap:8px;background:var(--superficie);
+  border:2px solid var(--inchiostro);border-radius:16px;padding:4px 6px 4px 14px;
+  box-shadow:0 10px 30px -14px rgba(29,55,135,.6);
+}
+.cerca-storico svg{width:20px;height:20px;stroke:var(--tenue);stroke-width:2.2;fill:none;flex:none}
+.cerca-storico input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;padding:11px 0;
+  font:500 18px "Figtree",sans-serif;color:var(--testo);
+}
+.cerca-storico input::placeholder{color:var(--tenue);font-weight:400}
+.cerca-storico input::-webkit-search-cancel-button{display:none}
+.pulisci{flex:none;width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:var(--tenue);font-size:22px;cursor:pointer}
+.pulisci[hidden]{display:none}
+.acq{gap:10px;padding-right:12px}
+.acq .corpo{cursor:default}
+.ora{flex:none;font-size:13px;font-weight:600;color:var(--tenue);font-variant-numeric:tabular-nums}
+.sp{
+  background:var(--superficie);border-radius:14px;box-shadow:var(--ombra);
+  padding:14px 14px 12px;margin-bottom:12px;animation:entra .28s ease-out;
+}
+.sp-testa{display:flex;align-items:center;gap:12px}
+.sp-testa .corpo{cursor:default;padding:0}
+.sp-nome{font-size:19px;font-weight:600;line-height:1.25;word-break:break-word}
+.sp-ultimo{font-size:15px;margin-top:3px;line-height:1.35}
+.sp-ultimo b{color:var(--inchiostro);font-weight:700}
+.sp-volte{font-size:13px;color:var(--tenue);margin-top:2px}
+.sp-date{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--bordo)}
+.sp-date span{
+  font-size:13px;padding:3px 9px;border-radius:999px;border:1px solid var(--bordo);
+  color:var(--tenue);white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.rimetti{
+  margin-top:12px;width:100%;min-height:44px;border:2px solid var(--bordo);border-radius:12px;
+  background:transparent;color:var(--inchiostro);font:600 15px "Figtree",sans-serif;cursor:pointer;
+}
+.rimetti:active{background:color-mix(in srgb,var(--inchiostro) 10%,transparent)}
+.rimetti[disabled]{color:var(--basilico);border-style:dashed;cursor:default}
+
 :focus-visible{outline:3px solid var(--margine);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
@@ -296,10 +356,13 @@ ul{list-style:none}
 </style>
 </head>
 <body>
-<main class="foglio">
+<main class="foglio foglio-lista">
   <header>
     <h1>TJ Spesa</h1>
-    <div class="stato" id="stato" role="status"><i></i><span>Connessione…</span></div>
+    <div class="testata-dx">
+      <button class="apri-storico" id="apriStorico" type="button"><span aria-hidden="true">📒</span>Storico</button>
+      <div class="stato" id="stato" role="status"><i></i><span>Connessione…</span></div>
+    </div>
   </header>
   <p class="riepilogo" id="riepilogo"></p>
   <p class="avviso" id="avvisoDemo" hidden>
@@ -308,6 +371,18 @@ ul{list-style:none}
   <div id="lista"></div>
   <p style="margin-top:28px"><button class="chi-sono" id="cambiaNome"></button></p>
 </main>
+
+<section class="foglio storico" id="storico" hidden aria-label="Storico acquisti">
+  <button class="indietro" id="chiudiStorico" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>Lista</button>
+  <h1>Storico</h1>
+  <p class="sottotitolo" id="riepilogoStorico"></p>
+  <div class="cerca-storico">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5" stroke-linecap="round"/></svg>
+    <input id="cercaStorico" type="search" enterkeyhint="search" placeholder="Quando ho preso il latte?" aria-label="Cerca nei prodotti acquistati" autocomplete="off">
+    <button class="pulisci" id="pulisciStorico" type="button" aria-label="Cancella ricerca" hidden>×</button>
+  </div>
+  <div id="listaStorico"></div>
+</section>
 
 <div class="barra">
   <div class="proposte" id="proposte" hidden></div>
@@ -383,6 +458,8 @@ const idLista = (decodeURIComponent(location.hash.slice(1)) || CONFIG.listaPrede
   .toLowerCase().replace(/[^a-z0-9\-_]/g,"-").slice(0,40) || "famiglia";
 let voci = [];
 let prodotti = [];   // prodotti ricordati dalla famiglia (nuovi + quante volte comprati)
+let acquisti = [];   // storico: cosa è stato preso, da chi e quando
+let statoAcq = "carica";
 
 /* ---------------- catalogo e ricerca ---------------- */
 const norm = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
@@ -477,7 +554,21 @@ async function avviaFirebase(){
     aggiornaProposte(); disegna();
   }, err => console.error(err));
 
+  // storico acquisti: un documento per ogni prodotto spuntato (stesso id della voce)
+  const colAcq = fs.collection(db, "liste", idLista, "acquisti");
+  let ascoltoAcq = null;
+
   return {
+    registraAcquisto: (id, a) => fs.setDoc(fs.doc(colAcq, id), a),
+    annullaAcquisto: id => fs.deleteDoc(fs.doc(colAcq, id)),
+    aggiornaAcquisto: (id, c) => fs.updateDoc(fs.doc(colAcq, id), c),
+    ascoltaAcquisti(){
+      if (ascoltoAcq) return;
+      ascoltoAcq = fs.onSnapshot(fs.query(colAcq, fs.orderBy("il", "desc"), fs.limit(2000)), snap => {
+        acquisti = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        statoAcq = "ok"; recuperaAcquisti(); disegnaStorico();
+      }, err => { statoAcq = "errore"; console.error(err); disegnaStorico(); });
+    },
     dimenticaProdotto: nome => fs.updateDoc(fs.doc(colProd, chiave(nome)), { usi: fs.increment(-1) }),
     registraProdotto: p => fs.setDoc(fs.doc(colProd, chiave(p.nome)),
       { nome: p.nome, em: p.em, reparto: p.reparto, usi: fs.increment(1), ultimo: Date.now() }, { merge: true }),
@@ -498,9 +589,19 @@ function avviaProva(){
   const chiaveProd = "spesa.prodotti." + idLista;
   const leggiProd = () => { try { return JSON.parse(store.get(chiaveProd) || "[]") } catch { return [] } };
   prodotti = leggiProd();
+  const chiaveAcq = "spesa.acquisti." + idLista;
+  const leggiAcq = () => { try { return JSON.parse(store.get(chiaveAcq) || "[]") } catch { return [] } };
+  const salvaAcq = arr => {
+    store.set(chiaveAcq, JSON.stringify(arr));
+    acquisti = [...arr].sort((a, b) => b.il - a.il); statoAcq = "ok"; disegnaStorico(); canale?.postMessage(1);
+  };
   voci = leggi(); disegna();
-  if (canale) canale.onmessage = () => { voci = leggi(); prodotti = leggiProd(); disegna(); };
+  if (canale) canale.onmessage = () => { voci = leggi(); prodotti = leggiProd(); acquisti = leggiAcq().sort((a, b) => b.il - a.il); disegna(); };
   return {
+    registraAcquisto: async (id, a) => salvaAcq([...leggiAcq().filter(x => x.id !== id), { id, ...a }]),
+    annullaAcquisto: async id => salvaAcq(leggiAcq().filter(x => x.id !== id)),
+    aggiornaAcquisto: async (id, c) => salvaAcq(leggiAcq().map(x => x.id === id ? { ...x, ...c } : x)),
+    ascoltaAcquisti(){ acquisti = leggiAcq().sort((a, b) => b.il - a.il); statoAcq = "ok"; recuperaAcquisti(); disegnaStorico(); },
     dimenticaProdotto: async nome => {
       const arr = leggiProd(); const es = arr.find(x => chiave(x.nome) === chiave(nome));
       if (es) { es.usi = (es.usi || 0) - 1; store.set(chiaveProd, JSON.stringify(arr)); prodotti = arr; }
@@ -525,7 +626,7 @@ const SPUNTA = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" stroke-l
 
 function rigaVoce(v){
   const info = v.fatto
-    ? (v.fattoDa ? `preso da ${esc(v.fattoDa)}` : "preso")
+    ? (v.fattoDa ? `preso da ${esc(v.fattoDa)}` : "preso") + (v.fattoIl ? ` · ${quando(v.fattoIl)}` : "")
     : (v.da ? `aggiunto da ${esc(v.da)}` : "");
   return `<li class="voce${v.fatto ? " fatto" : ""}" data-id="${esc(v.id)}">
     <button class="spunta" data-azione="spunta" aria-label="${v.fatto ? "Rimetti in lista" : "Segna come preso"}: ${esc(v.nome)}">${SPUNTA}</button>
@@ -571,7 +672,172 @@ function disegna(){
   $("riepilogo").innerHTML = !voci.length ? "" :
     n === 0 ? "<b>Tutto preso!</b> Puoi svuotare il carrello." :
     `<b>${n}</b> ${n === 1 ? "cosa da prendere" : "cose da prendere"}${presi.length ? `, ${presi.length} nel carrello` : ""}`;
+  disegnaStorico();
 }
+
+/* ---------------- date ---------------- */
+const F = o => new Intl.DateTimeFormat("it-IT", o);
+const fOra = F({ hour: "2-digit", minute: "2-digit" });
+const fGiorno = F({ weekday: "long", day: "numeric", month: "long" });
+const fGiornoAnno = F({ weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const fCorto = F({ day: "numeric", month: "short" });
+const fCortoAnno = F({ day: "numeric", month: "short", year: "2-digit" });
+const maiusc = s => s.charAt(0).toUpperCase() + s.slice(1);
+const quest_anno = ms => new Date(ms).getFullYear() === new Date().getFullYear();
+function inizioGiorno(ms){ const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function giorniFa(ms){ return Math.round((inizioGiorno(Date.now()) - inizioGiorno(ms)) / 864e5); }
+function giornoLungo(ms){
+  const g = giorniFa(ms);
+  if (g === 0) return "Oggi";
+  if (g === 1) return "Ieri";
+  return maiusc((quest_anno(ms) ? fGiorno : fGiornoAnno).format(ms));
+}
+function giornoCorto(ms){ return (quest_anno(ms) ? fCorto : fCortoAnno).format(ms).replace(".", ""); }
+// "oggi 13:22", "ieri 19:05", "2 nov 18:40"
+function quando(ms){
+  const g = giorniFa(ms);
+  return `${g === 0 ? "oggi" : g === 1 ? "ieri" : giornoCorto(ms)} ${fOra.format(ms)}`;
+}
+function quantoTempoFa(ms){
+  const g = giorniFa(ms);
+  if (g <= 0) return "oggi";
+  if (g === 1) return "ieri";
+  if (g < 30) return `${g} giorni fa`;
+  const m = Math.floor(g / 30);
+  if (m < 12) return m === 1 ? "un mese fa" : `${m} mesi fa`;
+  const a = Math.floor(g / 365);
+  return a <= 1 ? "un anno fa" : `${a} anni fa`;
+}
+
+/* ---------------- storico acquisti ---------------- */
+function datiAcquisto(v, da, il){
+  const { qta, resto } = separaQta(v.nome);
+  const a = aspetto(v);
+  return { nome: resto, qta, em: a.em, reparto: a.reparto, da: da || "", il };
+}
+// le cose già nel carrello prima di questa versione finiscono comunque nello storico
+const inRecupero = new Set();
+function recuperaAcquisti(){
+  if (statoAcq !== "ok" || !api) return;
+  const ids = new Set(acquisti.map(a => a.id));
+  for (const v of voci){
+    if (!v.fatto || !v.fattoIl || ids.has(v.id) || inRecupero.has(v.id)) continue;
+    inRecupero.add(v.id);
+    api.registraAcquisto(v.id, datiAcquisto(v, v.fattoDa, v.fattoIl)).catch(err => console.error(err));
+  }
+}
+
+let storicoAperto = false;
+const corrisponde = (nome, q) => {
+  const n = norm(nome);
+  return n.startsWith(q) || n.split(" ").some(w => w.startsWith(q)) || (q.length >= 3 && n.includes(q));
+};
+function disegnaStorico(){
+  if (!storicoAperto) return;
+  const box = $("listaStorico");
+  const q = norm($("cercaStorico").value);
+  $("pulisciStorico").hidden = !q;
+
+  if (statoAcq === "carica"){ box.innerHTML = `<div class="vuoto"><p>Un attimo…</p></div>`; $("riepilogoStorico").textContent = ""; return; }
+  if (statoAcq === "errore"){
+    box.innerHTML = `<div class="vuoto"><p>Storico non disponibile</p><p>Non riesco a leggerlo da Firebase. Controlla le regole del database.</p></div>`;
+    $("riepilogoStorico").textContent = ""; return;
+  }
+  if (!acquisti.length){
+    $("riepilogoStorico").textContent = "";
+    box.innerHTML = `<div class="vuoto"><p>Ancora niente</p><p>Quando spunti un prodotto come preso, lo trovi qui con la data.</p></div>`;
+    return;
+  }
+
+  if (!q){
+    const giorni = new Set(acquisti.map(a => inizioGiorno(a.il))).size;
+    $("riepilogoStorico").innerHTML = `<b>${acquisti.length}</b> ${acquisti.length === 1 ? "acquisto" : "acquisti"} in ${giorni} ${giorni === 1 ? "giorno" : "giorni"} di spesa`;
+    let html = "", giorno = null, n = 0;
+    for (const a of acquisti){
+      if (++n > 400) break;
+      const g = inizioGiorno(a.il);
+      if (g !== giorno){
+        if (giorno !== null) html += `</ul></section>`;
+        giorno = g;
+        html += `<section class="reparto"><h2>${esc(giornoLungo(a.il))}</h2><ul>`;
+      }
+      html += `<li class="voce acq">
+        <span class="icona" aria-hidden="true">${esc(a.em || emReparto(a.reparto))}</span>
+        <div class="corpo"><span class="nome">${esc(a.nome)}</span>${a.qta ? `<span class="qta">${esc(a.qta)}</span>` : ""}${a.da ? `<span class="chi">preso da ${esc(a.da)}</span>` : ""}</div>
+        <span class="ora">${fOra.format(a.il)}</span></li>`;
+    }
+    box.innerHTML = html + `</ul></section>`;
+    return;
+  }
+
+  // ricerca: un riquadro per prodotto con l'ultima volta che è stato preso
+  const gruppi = new Map();
+  for (const a of acquisti){
+    if (!corrisponde(a.nome, q)) continue;
+    const k = chiave(a.nome);
+    if (!gruppi.has(k)) gruppi.set(k, []);
+    gruppi.get(k).push(a);   // già in ordine dal più recente
+  }
+  const lista = [...gruppi.values()].sort((x, y) => {
+    const px = norm(x[0].nome).startsWith(q) ? 1 : 0, py = norm(y[0].nome).startsWith(q) ? 1 : 0;
+    return py - px || y[0].il - x[0].il;
+  });
+  $("riepilogoStorico").textContent = lista.length
+    ? `${lista.length} ${lista.length === 1 ? "prodotto trovato" : "prodotti trovati"}` : "";
+  if (!lista.length){
+    box.innerHTML = `<div class="vuoto"><p>Mai preso</p><p>Nessun acquisto di “${esc($("cercaStorico").value.trim())}” nello storico.</p></div>`;
+    return;
+  }
+  box.innerHTML = lista.map(arr => {
+    const u = arr[0];
+    const gia = giaInLista(u.nome);
+    const date = arr.slice(0, 12).map(a => `<span>${esc(giornoCorto(a.il))}${a.qta ? ` · ${esc(a.qta)}` : ""}</span>`).join("");
+    return `<article class="sp">
+      <div class="sp-testa">
+        <span class="icona" aria-hidden="true">${esc(u.em || emReparto(u.reparto))}</span>
+        <div class="corpo">
+          <div class="sp-nome">${esc(u.nome)}</div>
+          <div class="sp-ultimo">Ultima volta: <b>${esc(quantoTempoFa(u.il))}</b></div>
+          <div class="sp-volte">${esc(giornoLungo(u.il))}, ${fOra.format(u.il)}${u.da ? ` · ${esc(u.da)}` : ""}${arr.length > 1 ? ` · preso ${arr.length} volte` : ""}</div>
+        </div>
+      </div>
+      ${arr.length > 1 ? `<div class="sp-date" aria-label="Tutte le volte">${date}${arr.length > 12 ? `<span>+${arr.length - 12}</span>` : ""}</div>` : ""}
+      <button class="rimetti" type="button" data-k="${esc(chiave(u.nome))}"${gia ? " disabled" : ""}>${gia ? "✓ Già in lista" : "+ Rimetti in lista"}</button>
+    </article>`;
+  }).join("");
+}
+
+function apriStorico(){
+  if (storicoAperto) return;
+  storicoAperto = true;
+  document.body.classList.add("in-storico");
+  $("storico").hidden = false;
+  window.scrollTo(0, 0);
+  history.pushState({ storico: 1 }, "");
+  api?.ascoltaAcquisti();
+  disegnaStorico();
+}
+function chiudiStorico(){
+  storicoAperto = false;
+  document.body.classList.remove("in-storico");
+  $("storico").hidden = true;
+  $("cercaStorico").value = "";
+  window.scrollTo(0, 0);
+}
+$("apriStorico").addEventListener("click", apriStorico);
+$("chiudiStorico").addEventListener("click", () => history.state?.storico ? history.back() : chiudiStorico());
+window.addEventListener("popstate", () => { if (storicoAperto) chiudiStorico(); });
+$("cercaStorico").addEventListener("input", disegnaStorico);
+$("pulisciStorico").addEventListener("click", () => { $("cercaStorico").value = ""; disegnaStorico(); $("cercaStorico").focus(); });
+$("listaStorico").addEventListener("click", e => {
+  const b = e.target.closest(".rimetti");
+  if (!b || b.disabled || !api) return;
+  const u = acquisti.find(a => chiave(a.nome) === b.dataset.k);
+  if (!u) return;
+  if (navigator.vibrate) navigator.vibrate(12);
+  aggiungiProdotto({ nome: u.nome, em: u.em, reparto: u.reparto }, "", false);
+  avvisa(`${u.nome} rimesso in lista`);
+});
 
 /* ---------------- interazioni ---------------- */
 /* proposte mentre scrivi */
@@ -673,9 +939,14 @@ $("lista").addEventListener("click", async e => {
 
   if (azione === "spunta"){
     if (navigator.vibrate) navigator.vibrate(12);
-    await api.aggiorna(id, v.fatto
-      ? { fatto:false, fattoDa:"", fattoIl:0 }
-      : { fatto:true, fattoDa: mioNome, fattoIl: Date.now() });
+    if (v.fatto){
+      await api.aggiorna(id, { fatto:false, fattoDa:"", fattoIl:0 });
+      api.annullaAcquisto(id).catch(err => console.error(err));
+    } else {
+      const il = Date.now();
+      await api.aggiorna(id, { fatto:true, fattoDa: mioNome, fattoIl: il });
+      api.registraAcquisto(id, datiAcquisto(v, mioNome, il)).catch(err => console.error(err));
+    }
   }
   if (azione === "modifica"){ apriModifica(v); return; }
   if (azione === "togli"){
@@ -721,6 +992,7 @@ $("formModifica").addEventListener("submit", async e => {
   chiudiModifica();
   try {
     await api.aggiorna(v.id, { nome: (qta ? qta + " " : "") + nomeNuovo, em, reparto });
+    if (v.fatto) api.aggiornaAcquisto(v.id, { nome: nomeNuovo, qta, em, reparto }).catch(() => {});
     if (chiave(vecchioNome) !== chiave(nomeNuovo)){
       api.dimenticaProdotto(vecchioNome).catch(() => {});
       api.registraProdotto({ nome: p && chiave(p.nome) === chiave(nomeNuovo) ? p.nome : nomeNuovo, em, reparto }).catch(err => console.error(err));
